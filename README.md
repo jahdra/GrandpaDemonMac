@@ -1,5 +1,5 @@
 # Grandpa Demon Revived
-A mod originally created by ItzKiba. Now available for GD 2.2074!
+A mod originally created by ItzKiba. Now available for GD 2.2081!
 
 ![Title](resources/readme/difficulties.png)
 
