@@ -20,6 +20,9 @@ if(GRANDPA_BUILD_MOD)
     if(NOT DEFINED ENV{GEODE_SDK} OR NOT EXISTS "$ENV{GEODE_SDK}/CMakeLists.txt")
         message(FATAL_ERROR "Set GEODE_SDK to a Geode 5.10.1 SDK checkout, or use -DGRANDPA_BUILD_MOD=OFF -DGRANDPA_BUILD_TESTS=ON for standalone tests.")
     endif()
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "17.0")
+        message(FATAL_ERROR "Geode 5.10.1 requires Xcode 26 / Apple Clang 17 or newer. Select a supported Xcode with xcode-select.")
+    endif()
     add_library(${PROJECT_NAME} SHARED
         src/main.cpp
         src/LevelInfoLayer.cpp

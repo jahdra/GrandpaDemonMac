@@ -15,9 +15,9 @@ concurrency:
 jobs:
   tests:
     name: Ranking regression tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Configure standalone tests
         run: cmake -S . -B build-tests -DGRANDPA_BUILD_MOD=OFF -DGRANDPA_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
       - run: cmake --build build-tests --parallel 2
@@ -26,21 +26,24 @@ jobs:
   build:
     name: Universal macOS release candidate
     needs: tests
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - name: Select Xcode 26.3 (Apple Clang 17 / LLVM 19)
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
       - name: Build and package
         uses: geode-sdk/build-geode-mod@e26ece68d56a3cfa0a7f790d8120c965008c3d08
         id: build
         with:
           sdk: given
+          cli: v3.9.0
           target: MacOS
           build-config: Release
           configure-args: '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"'
           bindings-ref: 7f6c2a75742856de88dad354e576dcff8a28e881
       - name: Verify package contents and architecture
         run: python3 scripts/verify_package.py "${{ steps.build.outputs.build-output }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: GrandpaDemon-macOS
           path: ${{ steps.build.outputs.build-output }}/*.geode

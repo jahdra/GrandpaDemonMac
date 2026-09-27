@@ -1,3 +1,13 @@
+# v1.3.0 — macOS release candidate
+* Target GD 2.2081 and Geode 5.10.1 with a universal Apple Silicon/Intel build.
+* Use the AREDL v2 endpoint and official positions; validate IDs, ranks and status.
+* Cache valid rankings, bound request time, retry failures and preserve vanilla fallback.
+* Replace global search flags with per-search snapshots and bounded pagination.
+* Preserve difficulty sprite children instead of unsafely re-parenting them.
+* Prevent duplicated effects, null dereferences and particle dictionary leaks.
+* Add independent regression tests, macOS CI and package verification.
+* Native in-game validation is required before publication; see RELEASE_CHECKLIST.md.
+
 # v1.2.1
 * Made compatible with 2.2074
 * Replaced Infinite Demon with Silent Demon difficulty

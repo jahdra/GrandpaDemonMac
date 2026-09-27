@@ -4,3 +4,4 @@
 *.dylib
 *.dSYM/
 .DS_Store
+__pycache__/
