@@ -1,0 +1,78 @@
+name: Build Fake Rate compatibility for macOS
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'compat/fake-rate/**'
+      - 'scripts/*fake_rate*'
+      - 'tests/*fake_rate*'
+      - '.github/workflows/fake-rate.yml'
+  pull_request:
+    paths:
+      - 'compat/fake-rate/**'
+      - 'scripts/*fake_rate*'
+      - 'tests/*fake_rate*'
+      - '.github/workflows/fake-rate.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fake-rate-mac-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Fake Rate compatibility regression tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test provider selection and saved face mappings
+        run: |
+          mkdir -p build-compat-tests
+          g++ -std=c++20 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -Icompat/fake-rate tests/fake_rate_compat_tests.cpp -o build-compat-tests/test
+          ./build-compat-tests/test
+      - uses: actions/checkout@v7
+        with:
+          repository: hiimjasmine00/FakeRate
+          ref: fac307b118450367a867ade2e2eef345ae98ae93
+          path: build-fake-rate
+      - run: python3 scripts/prepare_fake_rate.py build-fake-rate
+      - name: Validate patched integration and unchanged save schema
+        run: python3 tests/check_fake_rate_source.py build-fake-rate
+      - name: Test package verifier
+        run: python3 -m unittest discover -s tests -p 'test_fake_rate*.py' -v
+
+  build:
+    name: Universal Fake Rate compatibility build
+    needs: test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: hiimjasmine00/FakeRate
+          ref: fac307b118450367a867ade2e2eef345ae98ae93
+          path: build-fake-rate
+      - run: python3 scripts/prepare_fake_rate.py build-fake-rate
+      - name: Select compatible Apple Clang
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
+      - name: Build Fake Rate with compatibility patch
+        uses: geode-sdk/build-geode-mod@e26ece68d56a3cfa0a7f790d8120c965008c3d08
+        id: build
+        with:
+          sdk: '5.10.1'
+          cli: v3.9.0
+          target: MacOS
+          path: build-fake-rate
+          build-config: Release
+          bindings-ref: 7f6c2a75742856de88dad354e576dcff8a28e881
+      - name: Verify universal package and resources
+        run: python3 scripts/verify_fake_rate_package.py "${{ steps.build.outputs.build-output }}" build-fake-rate
+      - uses: actions/upload-artifact@v7
+        with:
+          name: FakeRate-Grandpa-Compat-macOS
+          path: ${{ steps.build.outputs.build-output }}/*.geode
+          if-no-files-found: error

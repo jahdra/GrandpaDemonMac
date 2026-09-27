@@ -1,0 +1,319 @@
+diff --git a/src/FakeRate.cpp b/src/FakeRate.cpp
+index 5760811..b3a7033 100644
+--- a/src/FakeRate.cpp
++++ b/src/FakeRate.cpp
+@@ -1,4 +1,5 @@
+ #include "FakeRate.hpp"
++#include "GrandpaCompat.hpp"
+ #include <Geode/binding/GJGameLevel.hpp>
+ #include <Geode/loader/Mod.hpp>
+ 
+@@ -88,14 +89,36 @@ CCPoint FakeRate::getDIBOffset(int difficulty, GJDifficultyName name) {
+     return difficulty < offsets.size() ? offsets[difficulty] : offsets[0];
+ }
+ 
+-int FakeRate::getGRDOverride(CCSprite* sprite) {
+-    auto sprName = getSpriteName(sprite);
++Mod* FakeRate::getGrandpaMod() {
++    auto loader = Loader::get();
++    auto id = grandpa::fake_rate::preferredModID(
++        loader->isModLoaded(grandpa::fake_rate::revivedID),
++        loader->isModLoaded(grandpa::fake_rate::legacyID));
++    return id.empty() ? nullptr : loader->getLoadedMod(id);
++}
+ 
+-    auto pos = sprName.find("GrD_demon");
+-    if (pos == std::string_view::npos || pos + 9 >= sprName.size()) return 0;
++std::string FakeRate::grandpaResource(std::string_view filename) {
++    auto mod = getGrandpaMod();
++    return mod ? mod->expandSpriteName(filename) : std::string(filename);
++}
+ 
+-    sprName.remove_prefix(pos + 9);
+-    return numFromString<int>(sprName).unwrapOrDefault();
++void FakeRate::showRevivedEffects(CCNode* layer, CCNode* face, bool show) {
++    // These containers are owned by Grandpa 1.3.0. Never delete or re-parent them:
++    // its effect-key cache expects them to survive until the layer is destroyed.
++    if (layer) {
++        for (auto id : {"ultrasoda.grandpa_demon_revived/grandpa-background",
++                       "ultrasoda.grandpa_demon_revived/grandpa-particles"}) {
++            if (auto node = layer->getChildByID(id)) node->setVisible(show);
++        }
++    }
++    if (face) {
++        if (auto node = face->getChildByID("ultrasoda.grandpa_demon_revived/grandpa-infinity"))
++            node->setVisible(show);
++    }
++}
++
++int FakeRate::getGRDOverride(CCSprite* sprite) {
++    return sprite ? grandpa::fake_rate::overrideFromFrame(getSpriteName(sprite)) : 0;
+ }
+ 
+ int FakeRate::getDIBOverride(CCSprite* sprite) {
+diff --git a/src/FakeRate.hpp b/src/FakeRate.hpp
+index 10ca898..efb7bb0 100644
+--- a/src/FakeRate.hpp
++++ b/src/FakeRate.hpp
+@@ -3,6 +3,7 @@
+ #include <Geode/Enums.hpp>
+ #include <Geode/GeneratedPredeclare.hpp>
+ #include <matjson.hpp>
++#include <Geode/loader/Mod.hpp>
+ 
+ struct FakeRateSaveData {
+     int id = 0;
+@@ -23,6 +24,9 @@ namespace FakeRate {
+     std::string_view getSpriteName(cocos2d::CCSprite* sprite);
+     void toggle(cocos2d::CCNode* node, bool enabled);
+     cocos2d::CCPoint getDIBOffset(int difficulty, GJDifficultyName name);
++    geode::Mod* getGrandpaMod();
++    std::string grandpaResource(std::string_view filename);
++    void showRevivedEffects(cocos2d::CCNode* layer, cocos2d::CCNode* face, bool show);
+     int getGRDOverride(cocos2d::CCSprite* sprite);
+     int getDIBOverride(cocos2d::CCSprite* sprite);
+     int getGDDPOverride(cocos2d::CCSprite* sprite);
+diff --git a/src/classes/FREditPopup.cpp b/src/classes/FREditPopup.cpp
+index 02a5afe..a27b742 100644
+--- a/src/classes/FREditPopup.cpp
++++ b/src/classes/FREditPopup.cpp
+@@ -58,8 +58,8 @@ bool FREditPopup::init(GJGameLevel* level, const FakeRateSaveData& data, UpdateF
+         m_mdSprite->setID("md-sprite");
+         m_mainLayer->addChild(m_mdSprite);
+     }
+-    if (loader->isModLoaded("itzkiba.grandpa_demon")) {
+-        m_grdSprite = CCSprite::createWithSpriteFrameName("itzkiba.grandpa_demon/GrD_demon0_text.png");
++    if (FakeRate::getGrandpaMod()) {
++        m_grdSprite = CCSprite::createWithSpriteFrameName(FakeRate::grandpaResource("GrD_demon0_text.png").c_str());
+         m_grdSprite->setPosition({ 60.0f, 105.0f });
+         m_grdSprite->setVisible(false);
+         m_grdSprite->setID("grd-sprite");
+@@ -257,7 +257,7 @@ void FREditPopup::FLAlert_Clicked(FLAlertLayer* alert, bool btn2) {
+     m_callback({
+         .id = levelID,
+         .stars = stars,
+-        .feature = m_level->m_featured > 1 ? m_level->m_isEpic + 1 : 0,
++        .feature = m_level->m_featured > 0 ? m_level->m_isEpic + 1 : 0,
+         .difficulty = jasmine::level::getDifficulty(m_level),
+         .moreDifficultiesOverride =
+             Loader::get()->isModLoaded("uproxide.more_difficulties") && (stars == 4 || stars == 7 || stars == 9) ? stars : 0,
+@@ -299,10 +299,10 @@ void FREditPopup::updateLabels() {
+         }
+         else m_mdSprite->setVisible(false);
+     }
+-    if (loader->isModLoaded("itzkiba.grandpa_demon")) {
++    if (FakeRate::getGrandpaMod()) {
+         if (m_grandpaDemonOverride > 0 && m_grandpaDemonOverride < 7) {
+             m_grdSprite->setDisplayFrame(sfc->spriteFrameByName(
+-                fmt::format("itzkiba.grandpa_demon/GrD_demon{}_text.png", m_grandpaDemonOverride - 1).c_str()));
++                fmt::format(fmt::runtime(FakeRate::grandpaResource("GrD_demon{}_text.png")), m_grandpaDemonOverride - 1).c_str()));
+             m_grdSprite->setPosition(m_difficultySprite->getPosition());
+             m_grdSprite->setVisible(true);
+             if (m_mdSprite) m_mdSprite->setVisible(false);
+diff --git a/src/classes/FREffects.cpp b/src/classes/FREffects.cpp
+index 5f7f496..c50a412 100644
+--- a/src/classes/FREffects.cpp
++++ b/src/classes/FREffects.cpp
+@@ -1,4 +1,6 @@
+ #include "FREffects.hpp"
++#include "../FakeRate.hpp"
++#include <algorithm>
+ #include <jasmine/random.hpp>
+ 
+ using namespace geode::prelude;
+@@ -6,14 +8,14 @@ using namespace geode::prelude;
+ CCSequence* getRandomSequence(float duration, double minimum, double maximum) {
+     auto actions = CCArray::create();
+     for (int i = 0; i < 19; i++) {
+-        actions->addObject(CCFadeTo::create(duration, jasmine::random::get(minimum, maximum)));
++        actions->addObject(CCFadeTo::create(duration, static_cast<GLubyte>(std::clamp(jasmine::random::get(minimum, maximum), 0.0, 255.0))));
+     }
+     actions->addObject(CCFadeTo::create(duration, 0));
+     return CCSequence::create(actions);
+ }
+ 
+ CCSprite* FREffects::grdInfinity() {
+-    auto infinity = CCSprite::createWithSpriteFrameName("itzkiba.grandpa_demon/GrD_demon4_infinity.png");
++    auto infinity = CCSprite::createWithSpriteFrameName(FakeRate::grandpaResource("GrD_demon4_infinity.png").c_str());
+     infinity->setZOrder(30);
+     infinity->setColor({ 255, 233, 136 });
+     infinity->setOpacity(100);
+@@ -34,7 +36,7 @@ std::pair<CCSprite*, CCSprite*> FREffects::infinityBackgrounds(bool grandpa) {
+     auto width = CCDirector::get()->getWinSize().width;
+     CCPoint position = { width / 2.0f, 0.0f };
+ 
+-    auto bg1 = CCSprite::create("itzkiba.grandpa_demon/GrD_demon4_bg.png");
++    auto bg1 = CCSprite::create(FakeRate::grandpaResource("GrD_demon4_bg.png").c_str());
+     bg1->setBlendFunc({ GL_ONE, GL_ONE });
+     bg1->setOpacity(0);
+     bg1->setScale(width / bg1->getContentWidth());
+@@ -48,7 +50,7 @@ std::pair<CCSprite*, CCSprite*> FREffects::infinityBackgrounds(bool grandpa) {
+     )));
+     bg1->runAction(CCRepeatForever::create(getRandomSequence(1.0f, 0.0, 180.0)));
+ 
+-    auto bg2 = CCSprite::create("itzkiba.grandpa_demon/GrD_demon4_bg.png");
++    auto bg2 = CCSprite::create(FakeRate::grandpaResource("GrD_demon4_bg.png").c_str());
+     bg2->setBlendFunc({ GL_ONE, GL_ONE });
+     bg2->setOpacity(0);
+     bg2->setScale(width * 2.0f / bg2->getContentWidth());
+@@ -69,7 +71,7 @@ CCSprite* FREffects::mythicalBackground() {
+     auto width = CCDirector::get()->getWinSize().width;
+     CCPoint position = { width / 2.0f, 0.0f };
+ 
+-    auto bg1 = CCSprite::create("itzkiba.grandpa_demon/GrD_demon4_bg.png");
++    auto bg1 = CCSprite::create(FakeRate::grandpaResource("GrD_demon4_bg.png").c_str());
+     bg1->setBlendFunc({ GL_ONE, GL_ONE });
+     bg1->setOpacity(0);
+     bg1->setScale(width / bg1->getContentWidth());
+@@ -90,7 +92,7 @@ CCSprite* FREffects::legendaryBackground() {
+     auto width = CCDirector::get()->getWinSize().width;
+     CCPoint position = { width / 2.0f, 0.0f };
+ 
+-    auto bg1 = CCSprite::create("itzkiba.grandpa_demon/GrD_demon4_bg.png");
++    auto bg1 = CCSprite::create(FakeRate::grandpaResource("GrD_demon4_bg.png").c_str());
+     bg1->setBlendFunc({ GL_ONE, GL_ONE });
+     bg1->setOpacity(0);
+     bg1->setScale(width / bg1->getContentWidth());
+diff --git a/src/classes/FRGRDPopup.cpp b/src/classes/FRGRDPopup.cpp
+index 8012f46..4c37ad9 100644
+--- a/src/classes/FRGRDPopup.cpp
++++ b/src/classes/FRGRDPopup.cpp
+@@ -38,7 +38,7 @@ bool FRGRDPopup::init(int grandpaDemonOverride, SetGRDCallback callback) {
+ 
+     for (int i = 1; i < 7; i++) {
+         auto toggle = CCMenuItemSpriteExtra::create(
+-            CCSprite::createWithSpriteFrameName(fmt::format("itzkiba.grandpa_demon/GrD_demon{}_text.png", i - 1).c_str()),
++            CCSprite::createWithSpriteFrameName(fmt::format(fmt::runtime(FakeRate::grandpaResource("GrD_demon{}_text.png")), i - 1).c_str()),
+             this, menu_selector(FRGRDPopup::onToggle)
+         );
+         toggle->setTag(i);
+diff --git a/src/classes/FRSetDifficultyPopup.cpp b/src/classes/FRSetDifficultyPopup.cpp
+index 37e36d4..4311dbc 100644
+--- a/src/classes/FRSetDifficultyPopup.cpp
++++ b/src/classes/FRSetDifficultyPopup.cpp
+@@ -99,7 +99,7 @@ bool FRSetDifficultyPopup::init(const FakeRateSaveData& data, bool legacy, SetDi
+     overrideMenu->setID("override-menu");
+     m_mainLayer->addChild(overrideMenu);
+ 
+-    if (loader->isModLoaded("itzkiba.grandpa_demon")) {
++    if (FakeRate::getGrandpaMod()) {
+         auto grdSprite = CCSprite::create("FR_grdBtn_001.png"_spr);
+         grdSprite->setScale(0.65f);
+         auto grdButton = CCMenuItemSpriteExtra::create(grdSprite, this, menu_selector(FRSetDifficultyPopup::onGrandpaDemon));
+@@ -147,6 +147,10 @@ void FRSetDifficultyPopup::onToggle(CCObject* sender) {
+ void FRSetDifficultyPopup::onGrandpaDemon(CCObject* sender) {
+     FRGRDPopup::create(m_grandpaDemonOverride, [this](int grd) {
+         m_grandpaDemonOverride = grd;
++        if (grd > 0) {
++            m_difficulty = static_cast<int>(GJDifficulty::DemonExtreme);
++            m_moreDifficultiesOverride = 0;
++        }
+         m_demonsInBetweenOverride = 0;
+         m_gddpIntegrationOverride = 0;
+     })->show();
+diff --git a/src/classes/FRSetFeaturePopup.cpp b/src/classes/FRSetFeaturePopup.cpp
+index 17b15a1..5d3b3b1 100644
+--- a/src/classes/FRSetFeaturePopup.cpp
++++ b/src/classes/FRSetFeaturePopup.cpp
+@@ -57,9 +57,9 @@ bool FRSetFeaturePopup::init(const FakeRateSaveData& data, bool legacy, SetFeatu
+             difficultySprite->setOpacity(0);
+             difficultySprite->addChild(mdSprite);
+         }
+-        if (loader->isModLoaded("itzkiba.grandpa_demon") && m_grandpaDemonOverride > 0) {
++        if (FakeRate::getGrandpaMod() && m_grandpaDemonOverride > 0 && m_grandpaDemonOverride < 7) {
+             auto grdSprite = CCSprite::createWithSpriteFrameName(
+-                fmt::format("itzkiba.grandpa_demon/GrD_demon{}_text.png", m_grandpaDemonOverride - 1).c_str());
++                fmt::format(fmt::runtime(FakeRate::grandpaResource("GrD_demon{}_text.png")), m_grandpaDemonOverride - 1).c_str());
+             grdSprite->setPosition(difficultySprite->getContentSize() / 2);
+             difficultySprite->setOpacity(0);
+             difficultySprite->addChild(grdSprite);
+diff --git a/src/hooks/LevelCell.cpp b/src/hooks/LevelCell.cpp
+index 6b068bf..b49ebc9 100644
+--- a/src/hooks/LevelCell.cpp
++++ b/src/hooks/LevelCell.cpp
+@@ -23,7 +23,9 @@ class $modify(FRLevelCell, LevelCell) {
+         if (!difficultyContainer) difficultyContainer = m_mainLayer->getChildByID("grd-demon-icon-layer");
+         if (!difficultyContainer) return;
+ 
+-        auto difficultySprite = static_cast<GJDifficultySprite*>(difficultyContainer->getChildByID("difficulty-sprite"));
++        auto difficultySprite = typeinfo_cast<GJDifficultySprite*>(difficultyContainer->getChildByID("difficulty-sprite"));
++        if (!difficultySprite) return;
++        FakeRate::showRevivedEffects(nullptr, difficultySprite, false);
+         if (auto betweenDifficultySprite = difficultyContainer->getChildByID("hiimjustin000.demons_in_between/between-difficulty-sprite")) {
+             betweenDifficultySprite->setVisible(false);
+             difficultySprite->setOpacity(255);
+@@ -192,8 +194,8 @@ class $modify(FRLevelCell, LevelCell) {
+             }
+         }
+ 
+-        if (loader->isModLoaded("itzkiba.grandpa_demon") && gdo > 0 && gdo < 7) {
+-            auto grdSprite = CCSprite::createWithSpriteFrameName(fmt::format("itzkiba.grandpa_demon/GrD_demon{}.png", gdo - 1).c_str());
++        if (FakeRate::getGrandpaMod() && gdo > 0 && gdo < 7) {
++            auto grdSprite = CCSprite::createWithSpriteFrameName(fmt::format(fmt::runtime(FakeRate::grandpaResource("GrD_demon{}.png")), gdo - 1).c_str());
+             grdSprite->setID("grandpa-demon-sprite"_spr);
+             grdSprite->setPosition(position);
+             difficultyContainer->addChild(grdSprite, 3);
+diff --git a/src/hooks/LevelInfoLayer.cpp b/src/hooks/LevelInfoLayer.cpp
+index 5871c7d..3ba16a2 100644
+--- a/src/hooks/LevelInfoLayer.cpp
++++ b/src/hooks/LevelInfoLayer.cpp
+@@ -76,6 +76,8 @@ class $modify(FRLevelInfoLayer, LevelInfoLayer) {
+         auto stars = level->m_stars.value();
+         auto starsRequested = level->m_starsRequested;
+         auto grandpaDemon = static_cast<CCSprite*>(getChildByID("grd-difficulty"));
++        if (!grandpaDemon && FakeRate::getGRDOverride(m_difficultySprite) != 0)
++            grandpaDemon = m_difficultySprite;
+         auto demonInBetween = static_cast<CCSprite*>(getChildByID("hiimjustin000.demons_in_between/between-difficulty-sprite"));
+         auto gddpDifficulty = static_cast<CCSprite*>(getChildByID("gddp-difficulty"));
+         auto loader = Loader::get();
+@@ -116,6 +118,8 @@ class $modify(FRLevelInfoLayer, LevelInfoLayer) {
+         auto level = m_level;
+         auto f = m_fields.self();
+         f->m_fakeRateData = data;
++        auto revived = Loader::get()->isModLoaded("ultrasoda.grandpa_demon_revived");
++        FakeRate::showRevivedEffects(this, m_difficultySprite, remove);
+ 
+         auto loader = Loader::get();
+ 
+@@ -155,8 +159,8 @@ class $modify(FRLevelInfoLayer, LevelInfoLayer) {
+         }
+         auto hasEffects = false;
+         auto winSize = CCDirector::get()->getWinSize();
+-        auto grandpaDemon = loader->getLoadedMod("itzkiba.grandpa_demon");
+-        if (grandpaDemon && !gddpOverride && !dibOverride) {
++        auto grandpaDemon = FakeRate::getGrandpaMod();
++        if (grandpaDemon && !revived && !gddpOverride && !dibOverride) {
+             removeChildByTag(69420);
+             if (animatedFire) removeChildByTag(69420);
+             auto hasDemon = false;
+@@ -168,7 +172,7 @@ class $modify(FRLevelInfoLayer, LevelInfoLayer) {
+                 }
+ 
+                 auto bgNum = 0;
+-                if (isSpriteName(child, "itzkiba.grandpa_demon/GrD_demon4_bg.png") &&
++                if (isSpriteName(child, FakeRate::grandpaResource("GrD_demon4_bg.png").c_str()) &&
+                     child != f->m_grandpaBackground1 && child != f->m_grandpaBackground2) {
+                     if (childID == "") child->setID(fmt::format("grd-bg-{}", ++bgNum));
+                     if (childID == "grd-bg-1") child->setVisible(remove);
+@@ -341,7 +345,7 @@ class $modify(FRLevelInfoLayer, LevelInfoLayer) {
+         }
+ 
+         if (grandpaDemon && gdo > 0 && gdo < 7) {
+-            f->m_grandpaDemon = CCSprite::createWithSpriteFrameName(fmt::format("itzkiba.grandpa_demon/GrD_demon{}_text.png", gdo - 1).c_str());
++            f->m_grandpaDemon = CCSprite::createWithSpriteFrameName(fmt::format(fmt::runtime(FakeRate::grandpaResource("GrD_demon{}_text.png")), gdo - 1).c_str());
+             f->m_grandpaDemon->setID("grandpa-demon-sprite"_spr);
+             f->m_grandpaDemon->setPosition(position);
+             addChild(f->m_grandpaDemon, 13);
+@@ -435,6 +439,12 @@ class $modify(FRLevelInfoLayer, LevelInfoLayer) {
+             addChild(f->m_gddpDemon, 3);
+             m_difficultySprite->setOpacity(0);
+         }
++
++        if (remove && revived) {
++            updateLabelValues();
++            FakeRate::showRevivedEffects(this, m_difficultySprite, true);
++            defaultFakeRate();
++        }
+     }
+ };
+ 
