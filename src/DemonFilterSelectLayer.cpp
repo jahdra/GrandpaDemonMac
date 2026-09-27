@@ -1,165 +1,65 @@
-#include <Geode/Bindings.hpp>
 #include <Geode/modify/DemonFilterSelectLayer.hpp>
-#include "ListManager.h"
+#include <Geode/ui/Popup.hpp>
+#include "SearchContext.h"
 
-class $modify(GrdDemonFilterSelectLayer, DemonFilterSelectLayer) {
-
-    struct Fields {
-        CCSprite* m_demon0Spr = nullptr;
-        CCSprite* m_demon1Spr = nullptr;
-        CCSprite* m_demon2Spr = nullptr;
-        CCSprite* m_demon3Spr = nullptr;
-        CCSprite* m_demon4Spr = nullptr;
-        CCSprite* m_demon5Spr = nullptr;
-    };
-    
-
-    static void onModify(auto &self) {
-        self.setHookPriority("DemonFilterSelectLayer::init", -1);
-    }
-
-    bool init() {
-        
-        DemonFilterSelectLayer::init();
-
-        if (ListManager::demonIDList.empty()) {
-            return true;
+class GrandpaSearchPopup : public Popup {
+    bool setup() {
+        if (!Popup::init(350.f, 210.f)) return false;
+        setTitle("Grandpa Demon Search");
+        auto disabled = ListManager::grandpaDisabled();
+        for (int type = 0; type < (disabled ? 5 : 6); ++type) {
+            auto sprite = ListManager::sprite(type, true);
+            if (!sprite) continue;
+            auto button = CCMenuItemSpriteExtra::create(sprite, this, menu_selector(GrandpaSearchPopup::onSearch));
+            button->setTag(type);
+            button->setPosition({75.f + (type % 3) * 100.f, 130.f - (type / 3) * 75.f});
+            m_buttonMenu->addChild(button);
         }
-
-        handleTouchPriority(this);
-        CCLayer* layer = nullptr;
-
-        CCObject* layerObj;
-        CCARRAY_FOREACH(this->getChildren(), layerObj) {
-            if (auto newObj = static_cast<CCLayer*>(layerObj)) {
-                layer = newObj;
-            }
-        }
-
-        CCScale9Sprite* s9spr = nullptr;
-        CCLabelBMFont* label = nullptr;
-        CCMenu* menu = nullptr;
-        
-        CCObject* obj;
-        CCARRAY_FOREACH(layer->getChildren(), obj) {
-            if (auto newObj = dynamic_cast<CCScale9Sprite*>(obj)) {
-                s9spr = newObj;
-            } else if (auto newObj2 = dynamic_cast<CCLabelBMFont*>(obj)) {
-                label = newObj2;
-            } else if (auto newObj3 = dynamic_cast<CCMenu*>(obj)) {
-                menu = newObj3;
-            }
-        }
-
-
-        // Find OK Button
-        CCMenuItemSpriteExtra* okButton = nullptr;
-        CCObject* obj_ok;
-        CCARRAY_FOREACH(menu->getChildren(), obj_ok) {
-            if (auto newObj = dynamic_cast<CCMenuItemSpriteExtra*>(obj_ok)) {
-                if (newObj->getPositionY() < 0) {
-                    okButton = newObj;
-                    break;
-                }
-            }
-        }
-
-        auto csize = s9spr->getContentSize();
-        s9spr->setContentSize({csize.width, csize.height * 1.5f});
-        auto newcsize = s9spr->getContentSize();
-        label->setPositionY(newcsize.height + 0.f);
-        label->setScale(0.8f);
-        menu->setPositionY(newcsize.height * 0.82f);
-        okButton->setPositionY(-160.f);
-
-        handleTouchPriority(this);
-
-        // create new menu
-        auto newMenu = CCMenu::create();
-        layer->addChild(newMenu);
-        newMenu->setPosition({layer->getContentSize().width / 2 - 3, layer->getContentSize().height * 0.38f});
-        newMenu->setLayout(RowLayout::create()
-        ->setGap(-1.f)
-        ->setAxisAlignment(AxisAlignment::Center));
-        
-        auto instantSearch = CCLabelBMFont::create("Instant Search", "bigFont.fnt");
-        instantSearch->setPosition({label->getPositionX(), layer->getContentSize().height * 0.52f});
-        instantSearch->setScale(0.8f);
-        layer->addChild(instantSearch);
-        
-        // create buttons and sprites
-
-        auto demon0Spr = CCSprite::createWithSpriteFrameName("GrD_demon0_text.png"_spr);
-        this->m_fields->m_demon0Spr = demon0Spr;
-        auto demon0Btn = CCMenuItemSpriteExtra::create(demon0Spr, this, menu_selector(GrdDemonFilterSelectLayer::onButton0));
-        newMenu->addChild(demon0Btn);
-        
-        auto demon1Spr = CCSprite::createWithSpriteFrameName("GrD_demon1_text.png"_spr);
-        this->m_fields->m_demon1Spr = demon1Spr;
-        auto demon1Btn = CCMenuItemSpriteExtra::create(demon1Spr, this, menu_selector(GrdDemonFilterSelectLayer::onButton1));
-        newMenu->addChild(demon1Btn);
-
-        auto demon2Spr = CCSprite::createWithSpriteFrameName("GrD_demon2_text.png"_spr);
-        this->m_fields->m_demon2Spr = demon2Spr;
-        auto demon2Btn = CCMenuItemSpriteExtra::create(demon2Spr, this, menu_selector(GrdDemonFilterSelectLayer::onButton2));
-        newMenu->addChild(demon2Btn);
-
-        auto demon3Spr = CCSprite::createWithSpriteFrameName("GrD_demon3_text.png"_spr);
-        this->m_fields->m_demon3Spr = demon3Spr;
-        auto demon3Btn = CCMenuItemSpriteExtra::create(demon3Spr, this, menu_selector(GrdDemonFilterSelectLayer::onButton3));
-        newMenu->addChild(demon3Btn);
-
-        auto demon4Spr = CCSprite::createWithSpriteFrameName("GrD_demon4_text.png"_spr);
-        this->m_fields->m_demon4Spr = demon4Spr;
-        auto demon4Btn = CCMenuItemSpriteExtra::create(demon4Spr, this, menu_selector(GrdDemonFilterSelectLayer::onButton4));
-        newMenu->addChild(demon4Btn);
-
-        if (!(Mod::get()->getSettingValue<bool>("grandpa-demon-disable"))) {
-            auto demon5Spr = CCSprite::createWithSpriteFrameName("GrD_demon5_text.png"_spr);
-            this->m_fields->m_demon5Spr = demon5Spr;
-            auto demon5Btn = CCMenuItemSpriteExtra::create(demon5Spr, this, menu_selector(GrdDemonFilterSelectLayer::onButton5));
-            newMenu->addChild(demon5Btn);
-        }   
-        
-        newMenu->updateLayout();
-        
         return true;
     }
+    void onSearch(CCObject* sender) {
+        auto node = typeinfo_cast<CCNode*>(sender);
+        if (!node) return;
+        auto ids = ListManager::rankings.category(node->getTag(), ListManager::grandpaDisabled());
+        auto search = GrandpaSearchContext::createSearch(ids);
+        if (!search) {
+            FLAlertLayer::create("No rankings", "No ranked levels are available in this category yet. Please try again after AREDL finishes loading.", "OK")->show();
+            ListManager::refresh();
+            return;
+        }
+        if (auto browser = LevelBrowserLayer::create(search)) geode::cocos::switchToScene(browser);
+    }
+public:
+    static GrandpaSearchPopup* create() {
+        auto popup = new GrandpaSearchPopup;
+        if (popup->setup()) { popup->autorelease(); return popup; }
+        delete popup;
+        return nullptr;
+    }
+};
 
-    void onButton0(CCObject* sender) {
-        ListManager::filterType = 0;
-        ListManager::isSupremeSearching = true;
-        auto browserLayer = LevelBrowserLayer::create(ListManager::getSearchObject(349, 249)); // should go to 499
-        geode::cocos::switchToScene(browserLayer);
+class $modify(GrandpaDemonFilter, DemonFilterSelectLayer) {
+    bool init() {
+        if (!DemonFilterSelectLayer::init()) return false;
+        // Keep the vanilla filter and its delegate untouched. A separate picker avoids
+        // relying on undocumented child ordering or resizing another mod's popup.
+        auto menu = CCMenu::create();
+        menu->setID("grandpa-search-menu"_spr);
+        auto size = CCDirector::sharedDirector()->getWinSize();
+        menu->setPosition({size.width / 2.f, size.height / 2.f - 125.f});
+        auto label = ButtonSprite::create("Grandpa Search", "goldFont.fnt", "GJ_button_01.png", 0.6f);
+        if (!label) return true;
+        label->setScale(0.65f);
+        menu->addChild(CCMenuItemSpriteExtra::create(label, this, menu_selector(GrandpaDemonFilter::onGrandpaSearch)));
+        addChild(menu, 10);
+        return true;
     }
-    void onButton1(CCObject* sender) {
-        ListManager::filterType = 1;
-        ListManager::isSupremeSearching = false;
-        auto browserLayer = LevelBrowserLayer::create(ListManager::getSearchObject(249, 149));
-        geode::cocos::switchToScene(browserLayer);
-    }
-    void onButton2(CCObject* sender) {
-        ListManager::filterType = 2;
-        ListManager::isSupremeSearching = false;
-        auto browserLayer = LevelBrowserLayer::create(ListManager::getSearchObject(149, 74));
-        geode::cocos::switchToScene(browserLayer);
-    }
-    void onButton3(CCObject* sender) {
-        ListManager::filterType = 3;
-        ListManager::isSupremeSearching = false;
-        auto browserLayer = LevelBrowserLayer::create(ListManager::getSearchObject(74, 24));
-        geode::cocos::switchToScene(browserLayer);
-    }
-    void onButton4(CCObject* sender) {
-        ListManager::filterType = 4;
-        ListManager::isSupremeSearching = false;
-        auto browserLayer = LevelBrowserLayer::create(ListManager::getSearchObject(24, 0));
-        geode::cocos::switchToScene(browserLayer);
-    }
-    void onButton5(CCObject* sender) {
-        ListManager::filterType = 5;
-        ListManager::isSupremeSearching = false;
-        auto browserLayer = LevelBrowserLayer::create(ListManager::getSearchObject(0, 0));
-        geode::cocos::switchToScene(browserLayer);
+    void onGrandpaSearch(CCObject*) {
+        ListManager::refresh();
+        if (ListManager::rankings.empty()) {
+            FLAlertLayer::create("AREDL unavailable", "Rankings are still loading or AREDL is unavailable. Vanilla difficulties remain active. Please try again shortly; failed requests can retry after one minute.", "OK")->show();
+            return;
+        }
+        if (auto popup = GrandpaSearchPopup::create()) popup->show();
     }
 };

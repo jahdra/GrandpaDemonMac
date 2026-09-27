@@ -1,73 +1,48 @@
-#include <Geode/Geode.hpp>
 #include <Geode/modify/MenuLayer.hpp>
-#include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/utils/web.hpp>
 #include "ListManager.h"
-#include <matjson.hpp> 
+#include <chrono>
 
 using namespace geode::prelude;
 
-class $modify(MenuLayer) {
-    struct Fields {
-        EventListener<web::WebTask> m_listener;
-    };
+void ListManager::refresh() {
+    // Owned by the mod, not a MenuLayer that may be destroyed during the request.
+    static async::TaskHolder<web::WebResponse> request;
+    static bool cacheLoaded = false;
+    static bool refreshed = false;
+    static auto nextAttempt = std::chrono::steady_clock::time_point::min();
+    if (!cacheLoaded) {
+        cacheLoaded = true;
+        auto cache = Mod::get()->getSavedValue<matjson::Value>("aredl-cache-v2");
+        if (rankings.parse(cache)) log::info("Loaded {} cached AREDL rankings", rankings.size());
+    }
+    auto now = std::chrono::steady_clock::now();
+    if (refreshed || request.isPending() || now < nextAttempt) return;
+    nextAttempt = now + std::chrono::seconds(60);
+    auto req = web::WebRequest();
+    req.userAgent("GrandpaDemon/1.3.0").timeout(std::chrono::seconds(20));
+    request.spawn(req.get("https://api.aredl.net/v2/api/aredl/levels?exclude_legacy=true&exclude_pending=true&exclude_removed=true"),
+        [](web::WebResponse response) {
+            if (!response.ok()) {
+                log::warn("AREDL unavailable ({}): {}. Keeping cached rankings; vanilla faces if no cache.",
+                    response.code(), response.errorMessage());
+                return;
+            }
+            auto data = response.json();
+            if (!data || !rankings.parse(data.unwrap())) {
+                log::warn("Rejected invalid AREDL response; keeping cached rankings");
+                return;
+            }
+            refreshed = true;
+            Mod::get()->setSavedValue("aredl-cache-v2", rankings.serialize());
+            log::info("Loaded {} AREDL rankings", rankings.size());
+        });
+}
 
+class $modify(GrandpaMenuLayer, MenuLayer) {
     bool init() {
         if (!MenuLayer::init()) return false;
-
-        if (ListManager::firstTimeOpen) {
-            return true;
-        }
-
-        m_fields->m_listener.bind([] (web::WebTask::Event* e) {
-            if (web::WebResponse* res = e->getValue()) {
-                
-                // 1. Check for HTTP errors
-                if (!res->ok()) {
-                    ListManager::firstTimeOpen = true;
-                    ListManager::filterType = -2;
-					log::error("Grandpa Demon: Failed to load list. HTTP Code: {}", res->code()); 
-                    
-                    std::string errorStr = fmt::format(
-                        "\n\n<cr>Could not load data from AREDL.</c>\nHTTP Error: {}\n\n<cb>-Grandpa Demon</c>", 
-                        res->code()
-                    );
-                    FLAlertLayer::create("What the??", errorStr, "OK")->show();
-                    return;
-                }
-
-                // 2. Parse JSON
-                auto jsonRes = res->json();
-                
-                if (jsonRes.isErr()) {
-                    ListManager::firstTimeOpen = true;
-                    ListManager::filterType = -2;
-                    log::error("Grandpa Demon: JSON Parsing Error: {}", jsonRes.unwrapErr().c_str()); 
-                    return;
-                }
-
-                // Send to ListManager
-                ListManager::parseData(jsonRes.unwrap());
-                ListManager::firstTimeOpen = true;
-                ListManager::filterType = -1;
-                
-                log::info("Grandpa Demon: Loaded {} levels from AREDL.", ListManager::demonIDList.size());
-            }
-            else if (e->isCancelled()) {
-                // Handle cancellation if needed
-				log::warn("Grandpa Demon: Request cancelled.");
-            }
-        });
-
-        // URL CHANGE: The endpoint /list is often deprecated or redirects. 
-        // usually /levels returns the full list array in V2 API.
-        auto req = web::WebRequest();
-        
-        // CRITICAL FIX: Set a User-Agent to avoid 403 Forbidden from Cloudflare
-        req.userAgent("GrandpaDemonMod/2.0"); 
-        
-        m_fields->m_listener.setFilter(req.get("https://api.aredl.net/api/aredl/levels"));
-
+        ListManager::refresh();
         return true;
     }
 };

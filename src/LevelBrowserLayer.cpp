@@ -1,109 +1,69 @@
-#include <Geode/Bindings.hpp>
 #include <Geode/modify/LevelBrowserLayer.hpp>
-#include "ListManager.h"
+#include "SearchContext.h"
 
-class $modify(GrDLevelBrowserLayer, LevelBrowserLayer) {
-
+class $modify(GrandpaBrowser, LevelBrowserLayer) {
     struct Fields {
-        int m_currentPage = 0;
-        int m_furthestLoadedPage = 0;
-        int m_lowIdx = 0;
+        std::vector<int> ids;
+        std::size_t page = 0;
+        bool loading = false;
     };
-
-    bool init(GJSearchObject* p0) {
-
-        if (!ListManager::isSupremeSearching) {
-            LevelBrowserLayer::init(p0);
-            return true;
+    bool init(GJSearchObject* search) {
+        if (!search) return false;
+        if (auto context = dynamic_cast<GrandpaSearchContext*>(search->getUserObject())) {
+            m_fields->ids = context->ids;
+            m_fields->page = context->page;
+            m_fields->loading = true;
         }
-
-        if (p0->m_searchType != SearchType::Type19) {
-            LevelBrowserLayer::init(p0);
-            return true;
-        }
-
-        this->m_fields->m_currentPage = 0;
-        int page = this->m_fields->m_currentPage;
-        this->m_fields->m_lowIdx = page * 10;
-
-        LevelBrowserLayer::init(ListManager::getSearchObject(499, 489));
+        if (!LevelBrowserLayer::init(search)) return false;
+        updateGrandpaControls();
         return true;
     }
-
-    // TodoReturn loadPage(GJSearchObject* p0) {
-
-    //     if (!ListManager::isSupremeSearching) {
-    //         LevelBrowserLayer::loadPage(p0);
-    //         return;
-    //     }
-
-    //     LevelBrowserLayer::loadPage(p0);
-    //     return;
-        
-    // }
-
-    void loadLevelsFinished(cocos2d::CCArray* p0, char const* p1, int p2) {
-        LevelBrowserLayer::loadLevelsFinished(p0, p1, p2);
-        if (!ListManager::isSupremeSearching) {
-            return;
-        }
-        if (this->m_searchObject->m_searchType != SearchType::Type19) {
-            return;
-        }
-        auto prevBtn = this->m_leftArrow;
-        auto nextBtn = this->m_rightArrow;
-
-        hideStuff();
-
-        prevBtn->setVisible(true);
-        nextBtn->setVisible(true);
-
-        if (this->m_fields->m_currentPage <= 0) {
-            prevBtn->setVisible(false);
-        } else if (this->m_fields->m_currentPage >= 24) {
-            nextBtn->setVisible(false);
-        }
+    void updateGrandpaControls() {
+        if (m_fields->ids.empty()) return;
+        auto page = m_fields->page;
+        auto count = m_fields->ids.size();
+        if (m_pageBtn) m_pageBtn->setVisible(false);
+        if (m_lastBtn) m_lastBtn->setVisible(false);
+        if (m_pageText) m_pageText->setVisible(false);
+        if (m_leftArrow) m_leftArrow->setVisible(!m_fields->loading && page > 0);
+        if (m_rightArrow) m_rightArrow->setVisible(!m_fields->loading && page + 1 < grandpa::pageCount(count));
+        if (m_countText) m_countText->setString(fmt::format("{} to {} of {}", page * 10 + 1,
+            std::min(count, (page + 1) * 10), count).c_str());
     }
-
+    void loadLevelsFinished(CCArray* levels, char const* key, int type) {
+        LevelBrowserLayer::loadLevelsFinished(levels, key, type);
+        m_fields->loading = false;
+        updateGrandpaControls();
+    }
+    void loadLevelsFailed(char const* key, int type) {
+        LevelBrowserLayer::loadLevelsFailed(key, type);
+        m_fields->loading = false;
+        updateGrandpaControls();
+    }
+    void loadGrandpaPage(std::size_t page) {
+        if (m_fields->loading) return;
+        auto search = GrandpaSearchContext::createSearch(m_fields->ids, page);
+        if (!search) return;
+        m_fields->page = page;
+        m_fields->loading = true;
+        updateGrandpaControls();
+        // Exactly one request, not the vanilla next-page request plus a custom request.
+        LevelBrowserLayer::loadPage(search);
+    }
     void onNextPage(CCObject* sender) {
-        LevelBrowserLayer::onNextPage(sender);
-        if (!ListManager::isSupremeSearching) {
-            return;
-        }
-        if (this->m_searchObject->m_searchType != SearchType::Type19) {
-            return;
-        }
-
-        if (this->m_fields->m_currentPage < 24) {
-            this->m_fields->m_currentPage += 1;
-        }
-        nextBtnActions();
-        
+        if (m_fields->ids.empty()) return LevelBrowserLayer::onNextPage(sender);
+        loadGrandpaPage(m_fields->page + 1);
     }
-
     void onPrevPage(CCObject* sender) {
-        LevelBrowserLayer::onPrevPage(sender);
-        if (!ListManager::isSupremeSearching) {
-            return;
-        }
-        if (this->m_searchObject->m_searchType != SearchType::Type19) {
-            return;
-        }
-        if (this->m_fields->m_currentPage > 0) {
-            this->m_fields->m_currentPage -= 1;
-        }
-        nextBtnActions();
-        
+        if (m_fields->ids.empty()) return LevelBrowserLayer::onPrevPage(sender);
+        if (m_fields->page > 0) loadGrandpaPage(m_fields->page - 1);
     }
-
-    void nextBtnActions() {
-        hideStuff();
-        LevelBrowserLayer::loadPage(ListManager::getSearchObject(499 - this->m_fields->m_currentPage * 10, 489 - this->m_fields->m_currentPage * 10));
-    }
-
-    void hideStuff() {
-        this->m_pageBtn->setVisible(false);
-        this->m_countText->setString(fmt::format("{} to {} of 250", this->m_fields->m_currentPage * 10 + 1, this->m_fields->m_currentPage * 10 + 10).c_str());
+    void onRefresh(CCObject* sender) {
+        if (!m_fields->ids.empty()) {
+            if (m_fields->loading) return;
+            m_fields->loading = true;
+            updateGrandpaControls();
+        }
+        LevelBrowserLayer::onRefresh(sender);
     }
 };
-

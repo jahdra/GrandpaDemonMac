@@ -1,0 +1,6 @@
+/build*/
+/.cache/
+*.geode
+*.dylib
+*.dSYM/
+.DS_Store
