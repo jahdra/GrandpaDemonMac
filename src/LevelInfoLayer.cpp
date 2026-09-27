@@ -1,5 +1,6 @@
 #include <Geode/modify/LevelInfoLayer.hpp>
 #include "ListManager.h"
+#include "FaceAlignment.h"
 #include "EffectsManager.h"
 #include "ParticleManager.h"
 
@@ -10,10 +11,7 @@ class $modify(GrandpaInfoLayer, LevelInfoLayer) {
         int type = ListManager::difficultyFor(m_level);
         if (!m_difficultySprite) return;
         auto face = ListManager::frame(type, true);
-        if (face) {
-            // Replace only the frame. Preserve featured/epic children and their ownership.
-            m_difficultySprite->setDisplayFrame(face);
-        } else type = -1;
+        if (!grandpa::setFaceFrame(m_difficultySprite, face)) type = -1;
         bool noBG = Mod::get()->getSettingValue<bool>("infinite-demon-disable");
         bool noParticles = Mod::get()->getSettingValue<bool>("particles-disable");
         int key = (type + 1) * 4 + noBG * 2 + noParticles;

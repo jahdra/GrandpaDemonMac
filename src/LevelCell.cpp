@@ -1,5 +1,6 @@
 #include <Geode/modify/LevelCell.hpp>
 #include "ListManager.h"
+#include "FaceAlignment.h"
 #include "EffectsManager.h"
 
 namespace {
@@ -19,8 +20,7 @@ class $modify(GrandpaLevelCell, LevelCell) {
         EffectsManager::remove(original, "grandpa-infinity"_spr);
         int type = ListManager::difficultyFor(m_level);
         auto replacement = ListManager::frame(type, false);
-        if (!replacement) return;
-        original->setDisplayFrame(replacement);
+        if (!grandpa::setFaceFrame(original, replacement)) return;
         auto size = original->getContentSize();
         EffectsManager::addInfinitySymbol({size.width / 2.f, size.height / 2.f}, original, type);
     }

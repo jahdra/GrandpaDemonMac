@@ -14,7 +14,7 @@ Originally created by **ItzKiba**, revived by **UltraSoda**; this fork focuses o
 | macOS | **11.0+**, subject to the game's and Geode's requirements |
 | Architecture | Universal **arm64 + x86_64** (Apple Silicon and Intel) |
 
-Version **1.3.0** is a macOS release candidate. Do not install it on GD 2.2074 or Geode 4.
+Version **1.3.1** is a macOS release candidate. Do not install it on GD 2.2074 or Geode 4.
 Windows, Android and iOS are not advertised by this fork's package.
 A successful build does not replace the in-game checks in [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
 
