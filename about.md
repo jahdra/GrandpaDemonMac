@@ -28,6 +28,12 @@ The difficulties of extreme demons are chosen based on their positions on the [A
 ***Note:** Grandpa Demon is optional and can be disabled in the mod's settings.*
 
 ## Credits
-* **<cg>tcoffa</c>** for creating the original Grandpa Demon sprite
-* **<cp>Geode's Discord</c>** for answering my stupid questions
-* **<co>AeonAir</c>** for making me do this out of spite in the first place
+* **<cg>ItzKiba</c>** — original Grandpa Demon mod
+* **<cg>UltraSoda</c>** — Grandpa Demon revival
+* **<cg>jahdra</c>** — macOS fork maintenance and in-game testing
+* **<cg>Arena AI agent</c>** — AI-assisted macOS compatibility, debugging, automated tests and Fake Rate integration
+* **<cg>tcoffa</c>** — original Grandpa Demon sprite
+* **<cg>hiimjasmine00</c>** — original Fake Rate mod (optional compatibility build)
+* **<cp>AREDL</c>** — rankings and API
+* **<cp>Geode contributors and community</c>** — loader, SDK and bindings
+* **<co>AeonAir</c>** — inspiration for the original mod

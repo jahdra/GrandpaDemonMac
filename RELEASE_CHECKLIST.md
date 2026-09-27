@@ -1,8 +1,43 @@
-# macOS release gate — v1.3.0
+# macOS release gate — v1.3.1
 
-Do not describe this release candidate as error-free until its native build and
-in-game tests below have been completed. No automated source test can prove all
+Do not describe this release candidate as error-free, even after its native build
+and in-game tests below have been completed. No automated source test can prove all
 Geometry Dash hooks, visual positioning or third-party mod combinations correct.
+
+## Current evidence and recommendation
+
+**Status: release candidate; public beta only after the pre-publication gates below.**
+
+- The maintainer reported that **v1.3.0** loaded and worked correctly in-game.
+  This does not establish results on both Mac architectures or all configurations.
+- **v1.3.1** built successfully with both architecture slices and passed geometry,
+  ranking and package checks: [validated code run](https://github.com/jahdra/GrandpaDemonMac/actions/runs/36334917764).
+- **Fake Rate compatibility build 1** built successfully and passed its automated
+  checks: [validated build](https://github.com/jahdra/GrandpaDemonMac/actions/runs/36334418160).
+- No explicit in-game confirmation of the Fake Rate extension or latest glow fix
+  has been recorded yet. Do not describe those as runtime-tested.
+
+## Pre-publication gates (including a public beta)
+
+- [ ] Confirm the redistribution license or obtain permission for original Grandpa
+      Demon code and artwork. No explicit license was identified in this checkout
+      or the referenced UltraSodaa/GrandpaDemon upstream repository. Do not invent
+      a license or assume the separate Fake Rate MIT license covers those assets.
+- [ ] On the maintainer's Mac, confirm **v1.3.1** starts cleanly and the affected
+      featured/glowing faces align in level pages and full/compact cells.
+- [ ] If offering the optional Fake Rate package, confirm all six face selections,
+      save/restart persistence and Remove restoring AREDL faces. Repeat with v1.3.1.
+- [ ] Publish the exact tested `.geode` files as a **GitHub prerelease** with
+      checksums, requirements, known limitations and a bug-report link. Actions
+      artifacts expire and are not suitable as permanent Reddit download links.
+- [ ] Label the optional Fake Rate build **unofficial**; retain its MIT license,
+      author credits, original mod ID and clear replace-not-duplicate instructions.
+- [ ] Describe Intel/Apple Silicon as **built for**, not **tested on both**, unless
+      both have actually been tested in-game. Request independent beta testers.
+
+Suggested beta report fields: Mac model/chip, macOS version, GD/Geode versions,
+mod versions, other UI mods, reproduction steps, screenshot and relevant Geode log.
+Remove personal information from logs before posting them publicly.
 
 ## Automated checks
 
@@ -14,6 +49,9 @@ Geometry Dash hooks, visual positioning or third-party mod combinations correct.
       out-of-range page requests, and disabling Grandpa.
 - [x] GitHub Actions native universal macOS build succeeds (Xcode 26.3).
 - [x] Package verification confirms manifest, resources and arm64/x86_64 slices.
+- [x] Face-alignment CPU regression tests reproduce the old geometry shift and
+      check repeated updates, frame trimming/rotation and return to vanilla.
+      These tests do not render Geometry Dash.
 
 ## Required in-game checks (not runnable in the Linux development sandbox)
 

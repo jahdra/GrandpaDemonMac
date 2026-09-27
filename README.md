@@ -89,10 +89,27 @@ cmake --build build-tests --parallel 2
 ctest --test-dir build-tests --output-on-failure
 ```
 
+## Public release status
+
+The current build is a **release candidate**, not a guarantee of error-free operation.
+Native macOS builds and automated checks pass. The maintainer reported successful
+in-game use of v1.3.0; the later Fake Rate integration and v1.3.1 glow fix still
+need explicit in-game confirmation. See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md)
+for the remaining checks and distribution requirements.
+
+No explicit redistribution license for the original Grandpa Demon code/artwork
+has been identified in this checkout or the referenced upstream repository.
+Confirm applicable licensing or obtain permission before public binary distribution;
+this fork does not grant rights to others' work. Fake Rate's MIT license applies
+only to the Fake Rate material covered by that license.
+
 ## Credits
 
 - **ItzKiba** — original mod
 - **UltraSoda** — Grandpa Demon revival
+- **jahdra** — macOS fork maintenance and in-game testing
+- **Arena AI agent** — AI-assisted macOS compatibility, debugging, automated tests and Fake Rate integration
+- **hiimjasmine00** — original Fake Rate mod (optional compatibility build)
 - **tcoffa** — original Grandpa Demon sprite
 - **AREDL** — rankings and API
 - **Geode contributors and community** — mod loader, SDK and bindings
