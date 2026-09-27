@@ -9,7 +9,7 @@ class $modify(GrandpaBrowser, LevelBrowserLayer) {
     };
     bool init(GJSearchObject* search) {
         if (!search) return false;
-        if (auto context = dynamic_cast<GrandpaSearchContext*>(search->getUserObject())) {
+        if (auto context = dynamic_cast<GrandpaSearchContext*>(search->getUserObject("grandpa-search-context"_spr))) {
             m_fields->ids = context->ids;
             m_fields->page = context->page;
             m_fields->loading = true;

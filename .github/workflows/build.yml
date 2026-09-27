@@ -22,6 +22,15 @@ jobs:
         run: cmake -S . -B build-tests -DGRANDPA_BUILD_MOD=OFF -DGRANDPA_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
       - run: cmake --build build-tests --parallel 2
       - run: ctest --test-dir build-tests --output-on-failure
+      - name: Package verifier regression tests
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Probe current AREDL response (service availability is not a build dependency)
+        continue-on-error: true
+        run: |
+          curl --fail --show-error --location --max-time 30 \
+            'https://api.aredl.net/v2/api/aredl/levels?exclude_legacy=true&exclude_pending=true&exclude_removed=true' \
+            --output build-tests/aredl.json
+          ./build-tests/ranking_tests build-tests/aredl.json
 
   build:
     name: Universal macOS release candidate

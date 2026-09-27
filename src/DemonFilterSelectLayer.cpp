@@ -52,6 +52,7 @@ class $modify(GrandpaDemonFilter, DemonFilterSelectLayer) {
         label->setScale(0.65f);
         menu->addChild(CCMenuItemSpriteExtra::create(label, this, menu_selector(GrandpaDemonFilter::onGrandpaSearch)));
         addChild(menu, 10);
+        handleTouchPriority(this);
         return true;
     }
     void onGrandpaSearch(CCObject*) {

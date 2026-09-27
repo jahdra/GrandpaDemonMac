@@ -14,7 +14,7 @@ public:
         auto context = new GrandpaSearchContext;
         context->ids = ids;
         context->page = page;
-        search->setUserObject(context);
+        search->setUserObject("grandpa-search-context"_spr, context);
         context->release(); // retained by search
         return search;
     }

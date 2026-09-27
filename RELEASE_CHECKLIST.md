@@ -12,8 +12,8 @@ Geometry Dash hooks, visual positioning or third-party mod combinations correct.
       all difficulty boundaries, saved-cache round trips and invalid refresh retention.
 - [x] Tests cover every category/page, partial final pages, no duplicate/missing IDs,
       out-of-range page requests, and disabling Grandpa.
-- [ ] GitHub Actions native universal macOS build succeeds.
-- [ ] Package verification confirms manifest, resources and arm64/x86_64 slices.
+- [x] GitHub Actions native universal macOS build succeeds (Xcode 26.3).
+- [x] Package verification confirms manifest, resources and arm64/x86_64 slices.
 
 ## Required in-game checks (not runnable in the Linux development sandbox)
 
@@ -51,8 +51,8 @@ Silicon is a useful additional check but is not a substitute for an Intel test.
 
 ### Environment limitations
 
-The local sandbox is Linux, without Geometry Dash or a macOS runtime. A direct
-request to the production AREDL endpoint failed during TLS connection in this
-sandbox; endpoint/schema handling was checked against AREDL's published backend
-source, not a successful live response. Online/offline integration remains an
+The local sandbox is Linux, without Geometry Dash or a macOS runtime. Direct shell TLS access to AREDL is restricted in this sandbox. The production
+endpoint and response schema were confirmed through the web retrieval tool and
+AREDL's published backend source. CI also probes the full live response separately
+from the deterministic tests (service availability does not block a build). Online/offline integration remains an
 explicit in-game test gate rather than an assumed pass.

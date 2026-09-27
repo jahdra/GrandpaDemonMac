@@ -71,6 +71,7 @@ public:
     std::size_t size() const { return m_levels.size(); }
     std::vector<int> category(int type, bool disableGrandpa) const {
         std::vector<int> ids;
+        if (type < 0 || type > 5) return ids;
         for (auto level : m_levels)
             if (difficulty(level.rank, disableGrandpa) == type) ids.push_back(level.id);
         return ids;

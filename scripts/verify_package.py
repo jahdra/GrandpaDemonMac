@@ -18,15 +18,19 @@ def verify(package):
             assert manifest[key] == expected[key], f'manifest mismatch: {key}'
         binary = expected['id'] + '.dylib'
         assert binary in names, 'missing macOS binary'
-        for resource in ('GrD_demon4_bg.png', 'GrD_IconSheet.png', 'GrD_IconSheet.plist'):
-            assert any(Path(name).name == resource for name in names), f'missing {resource}'
-        sheet = next(name for name in names if Path(name).name == 'GrD_IconSheet.plist')
-        frames = plistlib.loads(archive.read(sheet))['frames']
-        for index in range(6):
-            for suffix in ('', '_text'):
-                name = f'GrD_demon{index}{suffix}.png'
-                assert any(frame.endswith(name) for frame in frames), f'missing sprite {name}'
-        assert any(frame.endswith('GrD_demon4_infinity.png') for frame in frames)
+        for scale in ('', '-hd', '-uhd'):
+            resources = [f'GrD_demon4_bg{scale}.png']
+            for sheet_name in expected['resources']['spritesheets']:
+                resources += [f'{sheet_name}{scale}.png', f'{sheet_name}{scale}.plist']
+            for resource in resources:
+                assert any(Path(name).name == resource for name in names), f'missing {resource}'
+            sheet = next(name for name in names if Path(name).name == f'GrD_IconSheet{scale}.plist')
+            frames = plistlib.loads(archive.read(sheet))['frames']
+            for index in range(6):
+                for suffix in ('', '_text'):
+                    name = f'GrD_demon{index}{suffix}.png'
+                    assert any(frame.endswith(name) for frame in frames), f'missing sprite {name}'
+            assert any(frame.endswith('GrD_demon4_infinity.png') for frame in frames)
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / binary
             path.write_bytes(archive.read(binary))

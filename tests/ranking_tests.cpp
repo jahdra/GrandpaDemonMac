@@ -1,6 +1,8 @@
 #include "RankingData.h"
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
+#include <iterator>
 #include <set>
 
 #define CHECK(expr) do { if (!(expr)) { std::cerr << "FAIL line " << __LINE__ << ": " #expr "\n"; std::exit(1); } } while (false)
@@ -10,7 +12,7 @@ matjson::Value json(std::string const& text) {
     CHECK(parsed.isOk());
     return parsed.unwrap();
 }
-int main() {
+int main(int argc, char** argv) {
     using namespace grandpa;
     for (auto [rank, type] : std::vector<std::pair<int, int>>{
         {-1,-1},{0,-1},{1,5},{2,4},{25,4},{26,3},{75,3},{76,2},
@@ -91,6 +93,17 @@ int main() {
     CHECK(pageQuery({}, 0).empty());
     CHECK(pageQuery({1, 2, 3}, std::numeric_limits<std::size_t>::max()).empty());
     CHECK(data.category(4, true).size() == 25);
-    CHECK(data.category(-1, false).size() == 10); // ranks outside this mod's top 500
+    CHECK(data.category(-1, false).empty());
+    CHECK(data.category(6, false).empty());
+    if (argc == 2) {
+        std::ifstream input(argv[1]);
+        CHECK(input.good());
+        std::string body((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+        RankingData live;
+        CHECK(live.parse(json(body)));
+        CHECK(live.size() > 500);
+        CHECK(live.category(5, false).size() == 1);
+        std::cout << "Live AREDL response parsed: " << live.size() << " ranked solo levels.\n";
+    }
     std::cout << "Ranking, parsing, cache and pagination regression tests passed.\n";
 }
