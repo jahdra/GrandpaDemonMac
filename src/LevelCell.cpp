@@ -18,9 +18,9 @@ class $modify(GrandpaLevelCell, LevelCell) {
         if (!original) return; // A different UI mod may intentionally remove the face.
         EffectsManager::remove(original, "grandpa-infinity"_spr);
         int type = ListManager::difficultyFor(m_level);
-        auto replacement = ListManager::sprite(type, false);
+        auto replacement = ListManager::frame(type, false);
         if (!replacement) return;
-        original->setDisplayFrame(replacement->displayFrame());
+        original->setDisplayFrame(replacement);
         auto size = original->getContentSize();
         EffectsManager::addInfinitySymbol({size.width / 2.f, size.height / 2.f}, original, type);
     }

@@ -12,9 +12,6 @@
         "spritesheets": {
             "GrD_IconSheet": [
                 "resources/demons/*.png"
-            ],
-            "GrD_ReadmeSheet": [
-                "resources/readme/*.png"
             ]
         },
         "sprites": [

@@ -9,10 +9,10 @@ class $modify(GrandpaInfoLayer, LevelInfoLayer) {
         LevelInfoLayer::updateLabelValues();
         int type = ListManager::difficultyFor(m_level);
         if (!m_difficultySprite) return;
-        auto face = ListManager::sprite(type, true);
+        auto face = ListManager::frame(type, true);
         if (face) {
             // Replace only the frame. Preserve featured/epic children and their ownership.
-            m_difficultySprite->setDisplayFrame(face->displayFrame());
+            m_difficultySprite->setDisplayFrame(face);
         } else type = -1;
         bool noBG = Mod::get()->getSettingValue<bool>("infinite-demon-disable");
         bool noParticles = Mod::get()->getSettingValue<bool>("particles-disable");

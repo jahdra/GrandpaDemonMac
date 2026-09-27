@@ -5,6 +5,7 @@
 * Replace global search flags with per-search snapshots and bounded pagination.
 * Preserve difficulty sprite children instead of unsafely re-parenting them.
 * Prevent duplicated effects, null dereferences and particle dictionary leaks.
+* Avoid temporary sprite allocations during face updates and stop loading unused README textures.
 * Add independent regression tests, macOS CI and package verification.
 * Native in-game validation is required before publication; see RELEASE_CHECKLIST.md.
 
